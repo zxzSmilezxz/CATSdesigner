@@ -1,4 +1,5 @@
 ﻿using Application.Infrastructure.Models;
+using LMPlatform.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,14 +10,19 @@ namespace Application.Infrastructure.ScheduleManagement
 {
     public interface IScheduleManagementService
     {
-        void SaveScheduleProtectionLabsDate(int subjectId, int subGroupId, DateTime date, TimeSpan startTime, TimeSpan endTime, string building, string audience);
+        void SaveScheduleProtectionLabsDate(ScheduleProtectionLabs scheduleProtectionLabs);
 
-        void SaveDateLectures(int subjectId, DateTime date, TimeSpan startTime, TimeSpan endTime, string building, string audience);
+        void SaveDateLectures(LecturesScheduleVisiting lecturesScheduleVisiting);
+        public void SaveDatePractical(ScheduleProtectionPractical scheduleProtectionPractical);
 
         bool CheckIfAllowed(DateTime date, TimeSpan startTime, TimeSpan endTime, string building, string audience);
 
         IEnumerable<ScheduleModel> GetScheduleForDate(DateTime date);
 
-        IEnumerable<ScheduleModel> GetScheduleBetweenDates(DateTime startDate, DateTime dateTime);
+        IEnumerable<ScheduleModel> GetScheduleBetweenDates(DateTime startDate, DateTime endDate);
+
+        IEnumerable<ScheduleModel> GetScheduleBetweenTimes(DateTime date, TimeSpan startTime, TimeSpan endTime);
+
+        IEnumerable<ScheduleModel> GetUserSchedule(int userId, DateTime startDate, DateTime endDate);
     }
 }

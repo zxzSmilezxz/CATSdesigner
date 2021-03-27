@@ -1,19 +1,17 @@
-import { Component, OnInit } from '@angular/core';
-import {ChangeDetectionStrategy} from '@angular/core';
-import { Subject } from 'rxjs';
+import {ChangeDetectionStrategy, Component, OnInit} from '@angular/core';
+import {Subject} from 'rxjs';
 import {CalendarEvent, CalendarEventTimesChangedEvent, CalendarView} from 'angular-calendar';
 import {Lesson} from '../model/lesson.model';
 import {LessonService} from '../service/lesson.service';
-import {AddNoteComponent} from '../modal/add-note/add-note.component';
 import {Note} from '../model/note.model';
 import {NoteService} from '../service/note.service';
 import {MatDialog} from '@angular/material';
-import {Overlay} from '@angular/cdk/overlay';
 import {Message} from '../../../../../container/src/app/core/models/message';
 import {CreateLessonComponent} from '../modal/create-lesson/create-lesson.component';
 import {ConfirmationComponent} from '../modal/confirmation/confirmation.component';
 import {DatePipe} from '@angular/common';
 import {ModuleCommunicationService} from 'test-mipe-bntu-schedule';
+import {TranslatePipe} from '../../../../../container/src/app/pipe/translate.pipe';
 
 
 const colors: any = {
@@ -31,23 +29,30 @@ const colors: any = {
 })
 export class ScheduleMainComponent implements OnInit {
 
+  constructor(private lessonservice: LessonService,
+              private noteService: NoteService,
+              private dialog: MatDialog,
+              private datePipe: DatePipe,
+              private translatePipe: TranslatePipe,
+              private modulecommunicationservice: ModuleCommunicationService) {
+  }
+
   isLoadActive = true;
-  toolTip = 'Скрыть новости';
   scheduleWidth = '82%';
   newsWidth = '18%';
   newsLeft = '82%';
-  hideButton = '>';
-  startTimes: string[] = [' 08:00', ' 09:55', ' 11:40', ' 13:15'];
-  endTimes: string[] = [' 09:35', ' 11:30', ' 13:15', ' 15:00'];
-  locale = 'ru';
+  hideButton = '';
+  locale: string;
   lessons: Lesson[] = [];
-  subjects: any[] = [];
   notes: Note[] = [];
   lesson: Lesson = new Lesson();
-  view: CalendarView = CalendarView.Week;
+  view: CalendarView;
   CalendarView = CalendarView;
   viewDate: Date = new Date();
   user: any;
+  format = 'dd.MM.yyyy';
+  localeD = 'en-US';
+  teacher = 'Попова Ю.Б.';
 
   refresh: Subject<any> = new Subject();
 
@@ -55,59 +60,21 @@ export class ScheduleMainComponent implements OnInit {
 
   activeDayIsOpen = true;
 
-  constructor(private lessonservice: LessonService,
-              private noteService: NoteService,
-              private overlay: Overlay,
-              private dialog: MatDialog,
-              private datePipe: DatePipe,
-              private modulecommunicationservice: ModuleCommunicationService) {}
+  public isMobile(): boolean {
+    return window.matchMedia('screen and (max-width: 550px)').matches
+      || window.matchMedia('screen and (min-width: 550px) and (max-width: 767px)').matches;
+  }
 
   ngOnInit() {
-    localStorage.setItem('currentUser', JSON.stringify({id: 10031, role: 'lector', userName: 'popova'}));
+    if (this.isMobile()) {
+      this.view = CalendarView.Day;
+    } else {
+      this.view = CalendarView.Week;
+    }
+    this.locale = this.translatePipe.transform('text.schedule.locale.en', 'ru');
     this.user = JSON.parse(localStorage.getItem('currentUser'));
+    this.changeDate();
     this.isLoadActive = false;
-    this.lessonservice.getAllLessons(this.user.userName).subscribe(les => {
-      let i = 0;
-      les.Labs.forEach(lab => {
-        lab.title = lab.title.replace('  ', ' ');
-        this.lesson = this.createLesson(lab, i);
-        this.lessons.push(this.lesson);
-        i++;
-        if ( i === 4) {
-          i = 0;
-        }
-      });
-      i = 0;
-      les.Lect.forEach(lect => {
-        lect.title = lect.title.replace('  ', ' ');
-        this.lesson = this.createLesson(lect, i);
-        this.lessons.push(this.lesson);
-        i++;
-        if ( i === 4) {
-          i = 0;
-        }
-      });
-      this.lessons.forEach(lesson => {
-        this.events.push({
-          id: lesson.id,
-          start: lesson.start,
-          end: lesson.end,
-          title: this.calculateTitel(lesson),
-          color: colors.color,
-          resizable: {
-            beforeStart: false,
-            afterEnd: false,
-          },
-          draggable: false,
-          meta: 'lesson'
-        });
-      });
-
-      this.lessonservice.getAllSubjects(this.user.userName).subscribe(subjects => {
-        this.subjects = subjects;
-        this.refresh.next();
-      });
-    });
   }
 
   // tslint:disable-next-line:typedef
@@ -121,76 +88,48 @@ export class ScheduleMainComponent implements OnInit {
   }
 
   calculateTitel(lesson: Lesson): any {
+    let teacher = '';
     let minS;
-    minS  =  lesson.start.getMinutes();
+    let building = '';
+    let memo = '';
+    minS = lesson.Start.split(':')[1];
     if (minS.toString().length === 1) {
       minS = '0' + minS;
     }
     let minE;
-    minE  =  lesson.end.getMinutes();
+    minE = lesson.End.split(':')[1];
     if (minE.toString().length === 1) {
       minE = '0' + minE;
     }
-    return  lesson.start.getHours() + ':' + minS + '-'
-      +  lesson.end.getHours() + ':' + minE
-      + '|' + lesson.classroom + '|' + lesson.building
-      + '|' + lesson.shortname + '|' + lesson.type
-      + '|' + lesson.teacher  + '|' + lesson.color
-      + '|' + lesson.subjectId;
-  }
-
-  getTime(title: string): any {
-    const splitted = title.split('|', 3);
-    return splitted[0];
-  }
-
-  getLocation(title: string): any {
-    const splitted = title.split('|', 3);
-    return 'а.' + splitted[1] + ' к.' + splitted[2];
-  }
-
-  getName(title: string): any {
-    const splitted = title.split('|', 5);
-    return splitted[3];
-  }
-
-  getType(title: string): any {
-    const splitted = title.split('|', 5);
-    return ' ' + splitted[4] + ' ';
-  }
-
-  getThirdString(title: string): any {
-    const splitted = title.split('|', 6);
-    return splitted[5] ;
-  }
-
-  getColor(event: any): any {
-    if (this.isLesson(event)) {
-      const splitted = event.title.split('|', 7);
-      return splitted[6] ;
-    } else {
-      return 'white';
+    if (lesson.Building !== undefined) {
+      building = lesson.Building;
     }
+    if (lesson.Notes.length != 0) {
+      memo = lesson.Notes[0].message;
+    } else {
+      memo = '';
+    }
+    if (lesson.Teacher != undefined) {
+      teacher = lesson.Teacher.FullName;
+    }
+    return lesson.Start.split(':')[0] + ':' + minS + '-'
+      + lesson.End.split(':')[0] + ':' + minE
+      + '|' + lesson.Audience + '|' + building
+      + '|' + lesson.ShortName + '|' + lesson.Type
+      + '|' + teacher + '|' + lesson.Color
+      + '|' + lesson.Name + '|' + lesson.SubjectId + '|' + memo;
   }
 
-  getReferenceToSubject(title: string): any {
+  getToolTip(title: string): any {
     const splitted = title.split('|', 8);
-    return '/Subject?subjectId=' + splitted[7] ;
-  }
-
-  isLesson(event): boolean {
-    return event.meta === 'lesson';
+    return splitted[7];
   }
 
   isNote(event): boolean {
     return event.meta === 'note';
   }
 
-  eventTimesChanged({
-                      event,
-                      newStart,
-                      newEnd
-                    }: CalendarEventTimesChangedEvent): void {
+  eventTimesChanged({event, newStart, newEnd}: CalendarEventTimesChangedEvent): void {
     this.events = this.events.map(iEvent => {
       if (iEvent === event) {
         return {
@@ -204,35 +143,40 @@ export class ScheduleMainComponent implements OnInit {
   }
 
   addZerros(segment): any {
-    return  segment.date.getHours() + ':00';
+    return segment.date.getHours() + ':00';
   }
 
   public rerouteToSubject(title: string) {
     const message: Message = new Message();
-    message.Value = this.getReferenceToSubject(title);
+    message.Value = this.lessonservice.getReferenceToSubject(title);
     message.Type = 'Route';
     this.modulecommunicationservice.sendMessage(window.parent, message);
   }
 
 
-  getToolTip(title: string): any {
-    const splitted = title.split('|', 8);
-    return this.subjects.find(subject => subject.Id == splitted[7]).Name;
-  }
-
-  hourClick() {
+  hourClick(dateEvent: any) {
     const dialogRef = this.dialog.open(CreateLessonComponent,
-      {width: '500px', disableClose: true, data: {userName: this.user.userName}});
+      {
+        width: '600px',
+        disableClose: true,
+        data: {user: this.user, date: dateEvent},
+        position: {top: '0%'}
+      });
     dialogRef.afterClosed().subscribe(result => {
       if (result != null) {
         if (result.type === 'lesson') {
-          console.log(result.lesson);
-          this.lesson = this.createLessonAll(result.lesson, 0);
+          this.lesson = result.lesson;
+          const startT = new Date(this.lesson.Date);
+          const endT = new Date(this.lesson.Date);
+          startT.setHours(+this.lesson.Start.split(':')[0], +this.lesson.Start.split(':')[1]);
+          endT.setHours(+this.lesson.End.split(':')[0], +this.lesson.End.split(':')[1]);
+          this.lesson = result.lesson;
           this.lessons.push(this.lesson);
+          console.log(this.calculateTitel(this.lesson));
           this.events.push({
             id: this.lesson.id,
-            start: this.lesson.start,
-            end: this.lesson.end,
+            start: startT,
+            end: endT,
             title: this.calculateTitel(this.lesson),
             color: colors.color,
             resizable: {
@@ -266,45 +210,13 @@ export class ScheduleMainComponent implements OnInit {
     });
   }
 
-  createLesson(les: any, i: number): Lesson {
-    const lesson: Lesson = new Lesson();
-    const splitted = les.title.split(' ', 3);
-    lesson.shortname = splitted[0].trim();
-    lesson.type = splitted[2].trim();
-    lesson.color = les.color;
-    lesson.start = new Date(les.start + this.startTimes[i]);
-    lesson.end = new Date(les.start + this.endTimes[i]);
-    lesson.id = les.id;
-    lesson.teacher = 'Попова Ю.Б.';
-    lesson.building = '11';
-    lesson.classroom = '110';
-    lesson.subjectId = les.subjectId;
-    return lesson;
-  }
-
-  createLessonAll(les: any, i: number): Lesson {
-    const lesson: Lesson = new Lesson();
-    const splitted = les.title.split(' ', 3);
-    lesson.shortname = splitted[0].trim();
-    lesson.type = splitted[2].trim();
-    lesson.color = les.color;
-    lesson.start = new Date(les.start);
-    lesson.end = new Date(les.end);
-    lesson.id = les.id;
-    lesson.teacher = les.teacher;
-    lesson.building = les.building;
-    lesson.classroom = les.classroom;
-    lesson.subjectId = les.subjectId;
-    return lesson;
-  }
-
   deleteEvent(eventToDelete: CalendarEvent) {
     const dialogRef = this.dialog.open(ConfirmationComponent, {
       width: '200px',
       disableClose: true,
       height: '150px',
       data: {}
-    }) ;
+    });
     dialogRef.afterClosed().subscribe(result => {
       if (result != null) {
         if (result) {
@@ -315,11 +227,14 @@ export class ScheduleMainComponent implements OnInit {
     });
   }
 
-  changeNote(eventToDelete: CalendarEvent) {
-    const dialogRef = this.dialog.open(CreateLessonComponent, {width: '500px', data: { note: eventToDelete}, position: {top: '11%'}});
+  changeNote(eventToChange: CalendarEvent) {
+    const dialogRef = this.dialog.open(CreateLessonComponent, {
+      width: '600px',
+      data: {note: eventToChange, user: this.user}, position: {top: '0%'}
+    });
     dialogRef.afterClosed().subscribe(result => {
       if (result.note != null) {
-        this.events = this.events.filter(event => event !== eventToDelete);
+        this.events = this.events.filter(event => event !== eventToChange);
         this.events.push({
           id: result.note.id,
           start: result.note.start,
@@ -331,25 +246,29 @@ export class ScheduleMainComponent implements OnInit {
             afterEnd: true,
           },
           draggable: true,
-          meta: eventToDelete.meta
+          meta: eventToChange.meta
         });
         this.refresh.next();
       }
     });
   }
 
-  changeEvent(eventToDelete: CalendarEvent) {
+  changeLesson(lessonChanged: CalendarEvent) {
     const dialogRef = this.dialog.open(CreateLessonComponent,
-      {width: '500px', data: {userName: this.user.userName,  lesson: eventToDelete}});
+      {width: '600px',  data: {user: this.user, lesson: lessonChanged}, position: {top: '0%'}});
     dialogRef.afterClosed().subscribe(result => {
       if (result != null) {
-        this.events = this.events.filter(event => event !== eventToDelete);
-        this.lesson = this.createLessonAll(result, 0);
+        this.lesson = result.lesson;
+        const startT = new Date(this.lesson.Date);
+        const endT = new Date(this.lesson.Date);
+        startT.setHours(+this.lesson.Start.split(':')[0], +this.lesson.Start.split(':')[1]);
+        endT.setHours(+this.lesson.End.split(':')[0], +this.lesson.End.split(':')[1]);
+        this.events = this.events.filter(event => event !== lessonChanged);
         this.lessons.push(this.lesson);
         this.events.push({
           id: this.lesson.id,
-          start: this.lesson.start,
-          end: this.lesson.end,
+          start: startT,
+          end: endT,
           title: this.calculateTitel(this.lesson),
           color: colors.color,
           resizable: {
@@ -357,7 +276,7 @@ export class ScheduleMainComponent implements OnInit {
             afterEnd: false,
           },
           draggable: false,
-          meta: eventToDelete.meta
+          meta: lessonChanged.meta
         });
         this.refresh.next();
       }
@@ -365,15 +284,12 @@ export class ScheduleMainComponent implements OnInit {
   }
 
   public hideNews() {
-    if (this.newsWidth === '0%' ) {
+    if (this.newsWidth === '0%') {
       this.newsWidth = '18%';
       this.newsLeft = '82%';
       this.scheduleWidth = '82%';
-
-      this.hideButton = '>';
-      this.toolTip = 'Скрыть новости';
+      this.hideButton = '';
     } else {
-      this.toolTip = 'Раскрыть новости';
       this.newsLeft = '100%';
       this.hideButton = '<';
       this.scheduleWidth = '100%';
@@ -383,6 +299,41 @@ export class ScheduleMainComponent implements OnInit {
 
   public getTimeNote(event: any): string {
     return this.datePipe.transform(event.start, 'HH:mm') + '-' + this.datePipe.transform(event.end, 'HH:mm');
+  }
+
+  public changeDate(): any {
+    const a = new Date(this.viewDate);
+    a.setDate(a.getDate() + (7 - this.viewDate.getDay()));
+    const endDate = this.lessonservice.formatDate3(a);
+    a.setDate(a.getDate() - 6);
+    const startDate = this.lessonservice.formatDate3(a);
+    this.lessonservice.getLessonsByDates(startDate, endDate).subscribe(
+      l => {
+        this.lessons = l.Schedule;
+        this.events = [];
+        this.lessons.forEach(lesson => {
+          let dateArray: any;
+          dateArray = lesson.Date.split('.');
+          const startT = new Date(dateArray[2] + '-' + dateArray[1] + '-' + dateArray[0] + 'T' + lesson.Start);
+          const endT = new Date(dateArray[2] + '-' + dateArray[1] + '-' + dateArray[0] + 'T' + lesson.End);
+          lesson.Type = this.lessonservice.getLessonTypeById(lesson.Type);
+          this.events.push({
+            id: lesson.id,
+            start: startT,
+            end: endT,
+            title: this.calculateTitel(lesson),
+            color: colors.color,
+            resizable: {
+              beforeStart: false,
+              afterEnd: false,
+            },
+            draggable: false,
+            meta: 'lesson'
+          });
+        });
+        this.refresh.next();
+      }
+    );
   }
 }
 

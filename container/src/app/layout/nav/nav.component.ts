@@ -6,6 +6,13 @@ import {CoreService} from "../../core/services/core.service";
 import {Subject} from "rxjs";
 import { Lecturer, Student, Group } from '../../core/models/searchResults/search-results';
 import { SearchService } from '../../core/services/searchResults/search.service';
+import { ProfileService } from '../../core/services/searchResults/profile.service';
+
+
+interface Locale {
+  name: string;
+  value: string
+}
 
 
 @Component({
@@ -17,8 +24,12 @@ export class NavComponent implements OnInit, OnDestroy {
   public isLector: boolean;
   public isAdmin: boolean;
   public unconfirmedStudents: number = 0;
+  public locales: Locale[] = [{name: "Ru", value: "ru"}, {name: "En", value: "en"}];
+  public locale: Locale;
   private unsubscribeStream$: Subject<void> = new Subject<void>();
+  public profileIcon!: string;
 
+  public currentUserId!: number;
   valueForSearch!: string;
   
   searchResults !: string[];
@@ -31,13 +42,21 @@ export class NavComponent implements OnInit, OnDestroy {
   constructor(private layoutService: LayoutService,
               private coreService: CoreService,
               private autService: AuthenticationService,
-              private searchService: SearchService
+              private searchService: SearchService,
+              private profileService: ProfileService,
               ) {
   }
 
   public ngOnInit(): void {
     this.isLector = this.autService.currentUserValue.role == "lector";
     this.isAdmin = this.autService.currentUserValue.role == "admin";
+    this.getAvatar();
+    const local: string = localStorage.getItem("locale");
+    this.locale = local ? this.locales.find((locale: Locale) => locale.value === local) : this.locales[0];
+
+
+    this.currentUserId = this.autService.currentUserValue.id;
+
     this.coreService.getGroups()
       .pipe(
         tap((groups: any) => {
@@ -60,6 +79,11 @@ export class NavComponent implements OnInit, OnDestroy {
       () => location.reload());
   }
 
+  public onValueChange(value: any): void {
+    localStorage.setItem("locale", value.value.value);
+    window.location.reload()
+  }
+
   public ngOnDestroy(): void {
     this.unsubscribeStream$.next(null);
     this.unsubscribeStream$.complete();
@@ -67,7 +91,14 @@ export class NavComponent implements OnInit, OnDestroy {
 
 
 
+  getAvatar() {
+    this.profileService.getAvatar().subscribe(res => {
+      this.profileIcon = res;
+    });
+  }
+
   viewSearchResults() {
+    this.valueForSearch = this.valueForSearch.trim();
     if (this.valueForSearch.length >= 3) {
       this.viewGroupSearchResults();
       this.viewLecturerSearchResults();

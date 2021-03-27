@@ -5,6 +5,7 @@
     position: relative;
     height: 100%;
     display: grid;
+    min-width: 450px;
     grid-template-rows: auto 1fr auto;
     gap: 20px;
   }
@@ -27,9 +28,17 @@
     margin-top: 25px;
   }
 
-  &__table-action {
-    display: flex;
-    justify-content: center;
+  &__table {
+    &-action {
+      display: flex;
+      justify-content: center;
+    }
+    &-title {
+      margin-bottom: 5px;
+    }
+    &-container {
+      border-top: 0;
+    }
   }
 
   &__form {
@@ -37,6 +46,11 @@
       width: 100%;
       display: flex;
       gap: 0 20px;
+      justify-content: space-between;
+    }
+
+    &-group {
+      flex: 1;
     }
 
     &-error {

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Linq;
@@ -30,6 +31,14 @@ namespace Application.Infrastructure.FilesManagement
             foreach (var attach in attachments)
             {
                 SaveFile(attach, folder);
+            }
+        }
+
+        public void SaveFiles(IEnumerable<Attachment> attachments, Func<Attachment, string> property)
+        {
+            foreach (var attach in attachments)
+            {
+                SaveFile(attach, property.Invoke(attach));
             }
         }
 
@@ -72,7 +81,7 @@ namespace Application.Infrastructure.FilesManagement
         {
             using var repositoriesContainer = new LmPlatformRepositoriesContainer();
             var attachment = repositoriesContainer.AttachmentRepository.GetBy(new Query<Attachment>(x => x.PathName == pathName && x.FileName == fileName));
-            var tempFilePath = Path.Combine(_tempStorageRoot, attachment.FileName);
+            var tempFilePath = Path.Combine(_tempStorageRoot, attachment?.FileName ?? fileName);
             if (attachment != null)
             {
                 DeleteFileAttachment(attachment);

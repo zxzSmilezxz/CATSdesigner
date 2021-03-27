@@ -16,7 +16,6 @@ import localeRu from '@angular/common/locales/ru';
 import {HttpClientModule} from '@angular/common/http';
 import {DateFormatterParams} from 'angular-calendar';
 import {MatDialogModule} from '@angular/material/dialog';
-import {AddNoteComponent} from './modal/add-note/add-note.component';
 import {MatTooltipModule} from '@angular/material/tooltip';
 import { CreateLessonComponent } from './modal/create-lesson/create-lesson.component';
 import { ReactiveFormsModule } from '@angular/forms';
@@ -28,9 +27,14 @@ import { NewsComponent } from './news/news.component';
 import { NewsInfoComponent } from './modal/news-info/news-info.component';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MatButtonModule} from '@angular/material/button';
-import { SelectEventTypeComponent } from './modal/select-event-type/select-event-type.component';
 import {MatRadioModule} from '@angular/material/radio';
-import {MatTabGroup, MatTabsModule} from '@angular/material/tabs';
+import {MatTabsModule} from '@angular/material/tabs';
+import { AllNewsComponent } from './modal/all-news/all-news.component';
+import {NgxMaterialTimepickerModule} from 'ngx-material-timepicker';
+import {MatDatepickerModule} from '@angular/material/datepicker';
+import {TranslatePipe} from '../../../../container/src/app/pipe/translate.pipe';
+import {MatIconModule} from '@angular/material/icon';
+
 registerLocaleData(localeRu);
 
 class CustomDateFormatter extends CalendarNativeDateFormatter {
@@ -46,47 +50,50 @@ class CustomDateFormatter extends CalendarNativeDateFormatter {
   declarations: [
     AppComponent,
     ScheduleMainComponent,
-    AddNoteComponent,
     CreateLessonComponent,
     ConfirmationComponent,
     NewsComponent,
     NewsInfoComponent,
-    SelectEventTypeComponent
+    AllNewsComponent,
+    TranslatePipe
   ],
-  imports: [
-    BrowserModule,
-    MatButtonModule,
-    NoopAnimationsModule,
-    BrowserAnimationsModule,
-    CommonModule,
-    FormsModule,
-    AppRoutingModule,
-    MatDialogModule,
-    HttpClientModule,
-    MatInputModule,
-    MatTooltipModule,
-    MatProgressSpinnerModule,
-    MatFormFieldModule,
-    ReactiveFormsModule,
-    FlatpickrModule.forRoot(),
-    CalendarModule.forRoot({
-      provide: DateAdapter,
-      useFactory: adapterFactory
-    }, {
-      dateFormatter: {
-        provide: CalendarDateFormatter,
-        useClass: CustomDateFormatter
-      }
-    }),
-    MatSelectModule,
-    MatMenuModule,
-    MatRadioModule,
-    MatTabsModule
-  ],
-  providers: [DatePipe],
+    imports: [
+        BrowserModule,
+        MatButtonModule,
+        NoopAnimationsModule,
+        BrowserAnimationsModule,
+        CommonModule,
+        FormsModule,
+        AppRoutingModule,
+        MatDialogModule,
+        HttpClientModule,
+        MatInputModule,
+        MatTooltipModule,
+        MatProgressSpinnerModule,
+        MatFormFieldModule,
+        ReactiveFormsModule,
+        NgxMaterialTimepickerModule,
+        FlatpickrModule.forRoot(),
+        CalendarModule.forRoot({
+            provide: DateAdapter,
+            useFactory: adapterFactory
+        }, {
+            dateFormatter: {
+                provide: CalendarDateFormatter,
+                useClass: CustomDateFormatter
+            }
+        }),
+        MatSelectModule,
+        MatMenuModule,
+        MatRadioModule,
+        MatTabsModule,
+        MatDatepickerModule,
+        MatIconModule
+    ],
+  providers: [DatePipe, MatDatepickerModule, TranslatePipe],
   exports: [AppComponent, MatTooltipModule],
   bootstrap: [AppComponent],
-  entryComponents: [AddNoteComponent, CreateLessonComponent, ConfirmationComponent, NewsInfoComponent, SelectEventTypeComponent]
+  entryComponents: [AllNewsComponent, CreateLessonComponent, ConfirmationComponent, NewsInfoComponent]
 })
 export class AppModule {
 

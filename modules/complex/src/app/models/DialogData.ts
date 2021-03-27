@@ -12,6 +12,10 @@ export interface DialogData {
   subjectName?: string;
   isPublished?: boolean;
 
+  includeLabs?: boolean;
+  includeLectures?: boolean;
+  includeTests?: boolean;
+
   url?: string;
 
   isNew?: boolean;
@@ -23,5 +27,8 @@ export interface DialogData {
   //Adaptive Learning
   isAdaptive?: boolean;
   adaptivityType?: number;
-  adaptivity?: Adaptivity; 
+  adaptivity?: Adaptivity;
+
+  isGroup?: boolean;
+  parentId?: number;
 }

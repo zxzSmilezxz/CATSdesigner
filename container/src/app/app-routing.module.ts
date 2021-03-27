@@ -10,9 +10,10 @@ import { RegisterComponent } from './register/register.component';
 import { ProgressControlComponent } from './progress-control/progress-control.component';
 import { AboutComponent } from './about/about.component';
 import { ResetComponent } from './reset/reset.component';
+import { SubjectsNavComponent } from './layout/subjects-nav/subjects-nav.component';
 import { StatsComponent } from './searchResults/stats/stats.component';
 import { ProfileComponent } from './searchResults/profile/profile.component';
-
+import { ChangePersonalDataComponent } from './change-personal-data/change-personal-data.component';
 const routes: Routes = [
   {
     path: '',
@@ -43,6 +44,10 @@ const routes: Routes = [
       {
         path: 'profile/:id',
         component: ProfileComponent
+      },
+      {
+        path: 'personalAccount',
+        component: ChangePersonalDataComponent
       }
     ]
   },
@@ -50,6 +55,7 @@ const routes: Routes = [
   { path: 'register', component: RegisterComponent },
   { path: 'forgot', component: ResetComponent },
   { path: 'progControl', component: ProgressControlComponent },
+  { path: 'nav', component: SubjectsNavComponent },
   { 
     path: 'adminPanel', 
     component: AdminComponent,

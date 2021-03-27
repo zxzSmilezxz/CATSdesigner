@@ -15,7 +15,7 @@ import { NavComponent } from './layout/nav/nav.component';
 import { FooterComponent } from './layout/footer/footer.component';
 
 import { MatetialModule } from './shared/matetial/matetial.module';
-
+import {TranslatePipe} from "./pipe/translate.pipe";
 import { CoreModule } from './core/core.module';
 import { SubjectsNavComponent } from './layout/subjects-nav/subjects-nav.component';
 import { LayoutService } from './layout/layout.service';
@@ -33,6 +33,9 @@ import { ProfileComponent } from './searchResults/profile/profile.component';
 import { StatsComponent } from './searchResults/stats/stats.component';
 import { TableForStatsSubjectComponent } from './searchResults/stats/table-for-stats-subject/table-for-stats-subject.component';
 
+import { ChangePersonalDataComponent } from './change-personal-data/change-personal-data.component';
+import { ChangePasswordDialog } from './change-password-dialog/change-password-dialog.component';
+
 
 
 @NgModule({
@@ -49,9 +52,14 @@ import { TableForStatsSubjectComponent } from './searchResults/stats/table-for-s
     ConfirmationComponent,
     AboutComponent,
     ResetComponent,
+    TranslatePipe,
     ProfileComponent,
     StatsComponent,
-    TableForStatsSubjectComponent
+    TableForStatsSubjectComponent,
+    ChangePersonalDataComponent,
+    ChangePasswordDialog,
+    ProfileComponent,
+    StatsComponent
   ],
   imports: [
     BrowserModule,
@@ -61,7 +69,6 @@ import { TableForStatsSubjectComponent } from './searchResults/stats/table-for-s
     MatetialModule,
     CoreModule,
     MatButtonModule,
-
     FormsModule,
     MatTableModule,
     MatDialogModule,
@@ -70,7 +77,8 @@ import { TableForStatsSubjectComponent } from './searchResults/stats/table-for-s
     ToastModule.forRoot()
   ],
   providers: [
-    LayoutService
+    LayoutService,
+    TranslatePipe
   ],
   bootstrap: [AppComponent]
 })

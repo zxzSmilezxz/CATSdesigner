@@ -1,17 +1,12 @@
-﻿using Application.Core;
-using Application.Infrastructure.DocumentsManagement;
-using Bootstrap;
-using LMPlatform.UI.ViewModels.DocumentsViewModels;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using System.Text;
-using System.Web;
-using LMPlatform.UI.Attributes;
+using System.Collections.Generic;
+using Application.Core;
+using Application.Infrastructure.DocumentsManagement;
+using LMPlatform.UI.ViewModels.DocumentsViewModels;
 
 namespace LMPlatform.UI.Services.Documents
 {
-    [JwtAuth]
     public class DocumentService : IDocumentService
     {
         private readonly LazyDependency<IDocumentManagementService> _documentManagementService = new LazyDependency<IDocumentManagementService>();
@@ -20,11 +15,11 @@ namespace LMPlatform.UI.Services.Documents
 
         public DocumentService() { }
 
-        public DocumentPreview GetFullContent(int documentId)
+        public DocumentPreview GetFullContent(int documentId, int userId)
         {
             var content = new StringBuilder();
 
-            var document = DocumentManagementService.GetAll().FirstOrDefault(d => d.Id == documentId);
+            var document = DocumentManagementService.Find(documentId);
 
             if (document == null)
             {
@@ -37,13 +32,14 @@ namespace LMPlatform.UI.Services.Documents
             {
                 foreach (var document in documents)
                 {
-                    var childrens = DocumentManagementService.GetByParentId(document.Id);
+                    var childrens = DocumentManagementService.GetByParentId(document.Id, userId);
                     if (!childrens.Any())
                     {
-                        content.Append(document.Text);
+                        content.Append($"{document.Name}<br>{document.Text}");
                     }
                     else
                     {
+                        content.Append($"{document.Name}<br>");
                         ParseData(childrens, ref content);
                     }
                 }
@@ -54,27 +50,28 @@ namespace LMPlatform.UI.Services.Documents
             return DocumentToPreview(document);
         }
 
-        public IEnumerable<DocumentPreview> GetDocumentsBySubjectId(int subjectId) // Надо убрать
+        public IEnumerable<DocumentPreview> GetDocumentsBySubjectId(int subjectId, int userId) 
         {
-            var parentNodes = DocumentManagementService.GetBySubjectId(subjectId);
+            var parentNodes = DocumentManagementService.GetBySubjectId(subjectId, userId);
 
             foreach (var document in parentNodes)
                 yield return DocumentToPreview(document);
         }
 
-        public IEnumerable<DocumentsTree> GetDocumentsTreeBySubjectId(int subjectId)
+        public IEnumerable<DocumentsTree> GetDocumentsTreeBySubjectId(int subjectId, int userId)
         {
-            var documents = DocumentManagementService.GetBySubjectId(subjectId).Where(x => x.ParentId == null);
+            var documents = DocumentManagementService.GetBySubjectId(subjectId, userId).Where(x => x.ParentId == null);
 
             IEnumerable<DocumentsTree> ParseData(IEnumerable<Models.Documents> documents)
             {
-                foreach(var document in documents)
+                foreach (var document in documents)
                 {
                     yield return new DocumentsTree()
                     {
                         Id = document.Id,
                         Name = document.Name,
-                        Children = ParseData(DocumentManagementService.GetByParentId(document.Id))
+                        IsLocked = document.IsLocked,
+                        Children = ParseData(DocumentManagementService.GetByParentId(document.Id, userId))
                     };
                 }
             }
@@ -82,13 +79,16 @@ namespace LMPlatform.UI.Services.Documents
             return ParseData(documents);
         }
 
-        public bool UpdateDocument(DocumentPreview document)
+        public int UpdateDocument(DocumentPreview document)
         {
+            Models.Documents entity;
+
+            var subjectId = document.SubjectId.HasValue ? document.SubjectId.Value : 0;
             var documentDTO = PreviewToDocument(document);
 
             if (documentDTO.Id == 0) //Save new document
             {
-                DocumentManagementService.UpdateDocument(documentDTO);
+                entity = DocumentManagementService.SaveDocument(documentDTO, subjectId);
             }
             else // Update existing
             {
@@ -100,11 +100,12 @@ namespace LMPlatform.UI.Services.Documents
                 existingDocument.UserId = documentDTO.UserId;
                 existingDocument.Text = documentDTO.Text;
                 existingDocument.ParentOrder = documentDTO.ParentOrder;
+                existingDocument.IsLocked = documentDTO.IsLocked;
 
-                DocumentManagementService.UpdateDocument(existingDocument);
+                entity = DocumentManagementService.UpdateDocument(existingDocument);
             }
 
-            return true;
+            return entity.Id;
         }
 
         public bool RemoveDocument(int documentId)
@@ -122,9 +123,9 @@ namespace LMPlatform.UI.Services.Documents
             {
                 foreach (var document in documents)
                 {
-                    if (document.Childrens.Any())
+                    if (DocumentManagementService.GetByParentId(document.Id).Any())
                     {
-                        RemoveChilds(document.Childrens);
+                        RemoveChilds(DocumentManagementService.GetByParentId(document.Id));
                     }
                     DocumentManagementService.RemoveDocument(document);
                 }
@@ -140,7 +141,8 @@ namespace LMPlatform.UI.Services.Documents
             ParentId = document.ParentId,
             Name = document.Name,
             Text = document.Text,
-            ParentOrder = document.ParentOrder
+            ParentOrder = document.ParentOrder,
+            IsLocked = document.IsLocked,
         };
 
         Models.Documents PreviewToDocument(DocumentPreview document) => new Models.Documents()
@@ -150,7 +152,8 @@ namespace LMPlatform.UI.Services.Documents
             ParentId = document.ParentId,
             Name = document.Name,
             Text = document.Text,
-            ParentOrder = document.ParentOrder
+            ParentOrder = document.ParentOrder,
+            IsLocked = document.IsLocked,
         };
     }
 }
